@@ -454,6 +454,9 @@ const Admin = {
             return;
         }
 
+        // Load saved URL from localStorage
+        const savedUrl = localStorage.getItem('appsScriptUrl') || CONFIG.APPS_SCRIPT_URL || '';
+
         const content = document.getElementById('mainContent');
 
         content.innerHTML = `
@@ -468,13 +471,19 @@ const Admin = {
                     <p>URL deployment dari Google Apps Script</p>
                     <div class="form-group">
                         <label>Apps Script URL <span class="required">*</span></label>
-                        <input type="url" id="appsScriptUrl" value="${CONFIG.APPS_SCRIPT_URL}" 
+                        <input type="url" id="appsScriptUrl" value="${savedUrl}" 
                                placeholder="https://script.google.com/macros/s/...">
                         <small class="helper-text">Deploy Google Apps Script dan salin URL di sini</small>
                     </div>
                     <button class="btn btn-primary" onclick="Admin.saveAppsScriptUrl()">
                         💾 Simpan URL
                     </button>
+                    ${savedUrl ? `
+                        <div style="margin-top: 1rem; padding: 1rem; background: #ECFDF5; border: 2px solid #10B981; border-radius: 8px;">
+                            <strong style="color: #10B981;">✅ URL Disimpan:</strong><br>
+                            <small style="color: #065F46; word-break: break-all;">${savedUrl}</small>
+                        </div>
+                    ` : ''}
                 </div>
 
                 <div class="admin-card">
@@ -529,8 +538,28 @@ const Admin = {
             return;
         }
 
+        // Validate URL format
+        if (!url.includes('script.google.com') || !url.includes('/exec')) {
+            Utils.showAlert('URL tidak sah. Pastikan URL dari Google Apps Script deployment', 'error');
+            return;
+        }
+
+        // Save to localStorage
+        localStorage.setItem('appsScriptUrl', url);
+        
+        // Update CONFIG
+        CONFIG.APPS_SCRIPT_URL = url;
+        
+        // Call API to set URL
         API.setAppsScriptUrl(url);
-        Utils.showAlert('Apps Script URL disimpan', 'success');
+        
+        // Show success message
+        Utils.showAlert('✅ Apps Script URL disimpan! Refresh page untuk verify...', 'success');
+        
+        // Refresh the settings page to show saved URL
+        setTimeout(() => {
+            this.loadSystemSettings();
+        }, 1500);
     },
 
     saveMCHHours() {
