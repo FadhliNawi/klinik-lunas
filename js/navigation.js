@@ -49,43 +49,43 @@ const Navigation = {
         return `
             <li class="nav-item">
                 <a class="nav-link" onclick="Navigation.toggleDropdown('pendaftaranDropdown')">
-                    📝 Pendaftaran <span>▾</span>
+                    Pendaftaran <span>▾</span>
                 </a>
                 <div class="dropdown-menu" id="pendaftaranDropdown">
-                    <a class="dropdown-item" onclick="Navigation.loadPage('opd-registration')">🏥 Pesakit Luar (OPD)</a>
-                    <a class="dropdown-item" onclick="Navigation.loadPage('mch-registration')">👶 Ibu & Anak (MCH)</a>
-                    <a class="dropdown-item" onclick="Navigation.loadPage('all-patients')">📋 Semua Pesakit</a>
+                    <a class="dropdown-item" onclick="Navigation.loadPage('opd-registration')">Pesakit Luar (OPD)</a>
+                    <a class="dropdown-item" onclick="Navigation.loadPage('mch-registration')">Ibu & Anak (MCH)</a>
+                    <a class="dropdown-item" onclick="Navigation.loadPage('all-patients')">Semua Pesakit</a>
                 </div>
             </li>
             <li class="nav-item">
                 <a class="nav-link" onclick="Navigation.toggleDropdown('temujamjiDropdown')">
-                    📅 Temujanji <span>▾</span>
+                    Temujanji <span>▾</span>
                 </a>
                 <div class="dropdown-menu" id="temujamjiDropdown">
-                    <a class="dropdown-item" onclick="Navigation.loadPage('create-appointment')">➕ Buat Temujanji</a>
-                    <a class="dropdown-item" onclick="Navigation.loadPage('today-appointments')">📋 Hari Ini</a>
-                    <a class="dropdown-item" onclick="Navigation.loadPage('week-appointments')">📅 Minggu Ini</a>
-                    <a class="dropdown-item" onclick="Navigation.loadPage('search-appointments')">🔍 Cari Temujanji</a>
+                    <a class="dropdown-item" onclick="Navigation.loadPage('create-appointment')">Buat Temujanji</a>
+                    <a class="dropdown-item" onclick="Navigation.loadPage('today-appointments')">Hari Ini</a>
+                    <a class="dropdown-item" onclick="Navigation.loadPage('week-appointments')">Minggu Ini</a>
+                    <a class="dropdown-item" onclick="Navigation.loadPage('search-appointments')">Cari Temujanji</a>
                 </div>
             </li>
             <li class="nav-item">
                 <a class="nav-link" onclick="Navigation.toggleDropdown('sheetsDropdown')">
-                    📊 Sheets <span>▾</span>
+                    Sheets <span>▾</span>
                 </a>
                 <div class="dropdown-menu" id="sheetsDropdown">
-                    <a class="dropdown-item" onclick="Navigation.loadPage('sheets-registry')">📋 Semua Sheets</a>
-                    <a class="dropdown-item" onclick="Navigation.loadPage('add-sheet')">➕ Tambah Sheet</a>
+                    <a class="dropdown-item" onclick="Navigation.loadPage('sheets-registry')">Semua Sheets</a>
+                    <a class="dropdown-item" onclick="Navigation.loadPage('add-sheet')">Tambah Sheet</a>
                 </div>
             </li>
             <li class="nav-item">
                 <a class="nav-link" onclick="Navigation.toggleDropdown('adminDropdown')">
-                    ⚙️ Admin <span>▾</span>
+                    Admin <span>▾</span>
                 </a>
                 <div class="dropdown-menu" id="adminDropdown">
-                    <a class="dropdown-item" onclick="Navigation.loadPage('system-settings')">⚙️ Tetapan Sistem</a>
-                    <a class="dropdown-item" onclick="Navigation.loadPage('blocked-dates')">🚫 Urus Tarikh Tutup</a>
-                    <a class="dropdown-item" onclick="Navigation.loadPage('slot-config')">📅 Konfigurasi Slot</a>
-                    <a class="dropdown-item" onclick="Navigation.loadPage('user-management')">👥 Urus Pengguna</a>
+                    <a class="dropdown-item" onclick="Navigation.loadPage('system-settings')">Tetapan Sistem</a>
+                    <a class="dropdown-item" onclick="Navigation.loadPage('blocked-dates')">Tarikh Tutup</a>
+                    <a class="dropdown-item" onclick="Navigation.loadPage('slot-config')">Konfigurasi Slot</a>
+                    <a class="dropdown-item" onclick="Navigation.loadPage('user-management')">Pengguna</a>
                 </div>
             </li>
         `;
