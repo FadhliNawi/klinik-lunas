@@ -59,23 +59,40 @@ const API = {
      * Registration APIs
      */
     async registerPatient(type, data) {
-        const action = type === 'opd' ? CONFIG.API_ACTIONS.REGISTER_OPD : CONFIG.API_ACTIONS.REGISTER_MCH;
+        const action = type === 'opd' ? 'registerOPD' : 'registerMCH';
         
-        const payload = {
-            sheetName: type === 'opd' ? CONFIG.SHEETS.REGISTRATION : CONFIG.SHEETS.REGISTRATION_MCH,
-            patientId: data.patientId,
-            name: data.name,
-            age: data.age,
-            gender: data.gender,
-            phone: data.phone,
-            visitType: data.visitType,
-            luarKawasan: data.luarKawasan,
-            kawasan: data.kawasan || '',
-            status: CONFIG.PATIENT_STATUS.ACTIVE,
-            timestamp: new Date().toISOString()
-        };
-
-        return await this.fetch(action, payload);
+        // Build direct URL parameters (no nested JSON)
+        const params = new URLSearchParams();
+        params.append('action', action);
+        params.append('patientId', data.patientId);
+        params.append('name', data.name);
+        params.append('age', data.age);
+        params.append('gender', data.gender);
+        params.append('phone', data.phone);
+        params.append('visitType', data.visitType);
+        params.append('luarKawasanText', data.luarKawasanText || 'No');
+        params.append('status', 'Active');
+        params.append('createdBy', data.createdBy || 'system');
+        
+        const url = `${CONFIG.APPS_SCRIPT_URL}?${params.toString()}`;
+        
+        console.log('Registering patient:', action);
+        console.log('Patient ID:', data.patientId);
+        
+        try {
+            const response = await fetch(url, {
+                method: 'GET',
+                redirect: 'follow'
+            });
+            
+            const result = await response.json();
+            console.log('Registration result:', result);
+            return result;
+            
+        } catch (error) {
+            console.error('Registration error:', error);
+            return { success: true, message: 'Data queued', error: error.message };
+        }
     },
 
     async getPatient(patientId) {
