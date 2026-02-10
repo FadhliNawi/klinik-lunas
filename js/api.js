@@ -1,67 +1,21 @@
 /**
  * Klinik Kesihatan Lunas - API Module
- * Handles all communication with Google Apps Script
+ * SIMPLE VERSION - Matches SIMPLE-TEST-VERSION.gs backend
  */
 
 const API = {
     /**
-     * Base fetch function
-     */
-    async fetch(action, data = {}, method = 'POST') {
-        const url = CONFIG.APPS_SCRIPT_URL;
-        
-        if (!url) {
-            throw new Error('Apps Script URL not configured. Please set it in Admin settings.');
-        }
-
-        try {
-            if (method === 'GET') {
-                const params = new URLSearchParams({ action, ...data });
-                return await this.fetchGet(`${url}?${params}`);
-            }
-            
-            // For POST, convert to GET with parameters (Google Apps Script works better this way)
-            const params = new URLSearchParams({ 
-                action, 
-                data: JSON.stringify(data) 
-            });
-            
-            const response = await fetch(`${url}?${params}`, {
-                method: 'GET',
-                redirect: 'follow'
-            });
-            
-            const result = await response.json();
-            return result;
-            
-        } catch (error) {
-            console.error('API Error:', error);
-            // Still return success to not block UI
-            return { success: true, message: 'Data queued for sync' };
-        }
-    },
-
-    /**
-     * GET request (for fetching data)
-     */
-    async fetchGet(url) {
-        try {
-            const response = await fetch(url);
-            const data = await response.json();
-            return data;
-        } catch (error) {
-            console.error('API GET Error:', error);
-            throw error;
-        }
-    },
-
-    /**
-     * Registration APIs
+     * Register patient (OPD or MCH)
      */
     async registerPatient(type, data) {
         const action = type === 'opd' ? 'registerOPD' : 'registerMCH';
+        const url = CONFIG.APPS_SCRIPT_URL;
         
-        // Build direct URL parameters (no nested JSON)
+        if (!url) {
+            throw new Error('Apps Script URL not configured. Go to Admin → Tetapan Sistem');
+        }
+        
+        // Build URL with direct parameters
         const params = new URLSearchParams();
         params.append('action', action);
         params.append('patientId', data.patientId);
@@ -71,331 +25,350 @@ const API = {
         params.append('phone', data.phone);
         params.append('visitType', data.visitType);
         params.append('luarKawasanText', data.luarKawasanText || 'No');
-        params.append('status', 'Active');
-        params.append('createdBy', data.createdBy || 'system');
         
-        const url = `${CONFIG.APPS_SCRIPT_URL}?${params.toString()}`;
+        const fullUrl = `${url}?${params.toString()}`;
         
-        console.log('Registering patient:', action);
-        console.log('Patient ID:', data.patientId);
+        console.log('🚀 Registering patient:', action);
+        console.log('📋 Patient ID:', data.patientId);
+        console.log('🔗 URL:', fullUrl);
         
         try {
-            const response = await fetch(url, {
+            const response = await fetch(fullUrl, {
                 method: 'GET',
                 redirect: 'follow'
             });
             
             const result = await response.json();
-            console.log('Registration result:', result);
+            console.log('✅ Registration result:', result);
             return result;
             
         } catch (error) {
-            console.error('Registration error:', error);
-            return { success: true, message: 'Data queued', error: error.message };
+            console.error('❌ Registration error:', error);
+            return { 
+                success: false, 
+                error: error.message,
+                note: 'Check Apps Script URL in Admin → Tetapan Sistem'
+            };
         }
     },
 
+    /**
+     * Get patient by IC
+     */
     async getPatient(patientId) {
-        const url = `${CONFIG.APPS_SCRIPT_URL}?action=${CONFIG.API_ACTIONS.GET_PATIENT}&patientId=${patientId}`;
-        return await this.fetchGet(url);
+        // Check localStorage first (for "pesakit sedia ada" feature)
+        const cached = Utils.getFromStorage(`patient_${patientId}`);
+        if (cached) {
+            return { success: true, data: cached };
+        }
+        
+        return { success: false, data: null };
     },
 
     /**
-     * Appointment APIs
+     * Create appointment
      */
     async createAppointment(data) {
-        const payload = {
-            sheetName: CONFIG.SHEETS.APPOINTMENTS,
-            patientId: data.patientId,
-            patientName: data.patientName,
-            phone: data.phone,
-            caseType: data.caseType,
-            date: data.date,
-            timeSlot: data.timeSlot,
-            notes: data.notes || '',
-            status: CONFIG.APPOINTMENT_STATUS.PENDING,
-            registrationId: data.registrationId || '',
-            createdBy: data.createdBy || '',
-            timestamp: new Date().toISOString()
-        };
-
-        return await this.fetch(CONFIG.API_ACTIONS.CREATE_APPOINTMENT, payload);
-    },
-
-    async getAppointments(date, type = null) {
-        const params = {
-            date: date
-        };
+        const url = CONFIG.APPS_SCRIPT_URL;
         
-        if (type) {
-            params.type = type;
+        if (!url) {
+            throw new Error('Apps Script URL not configured');
         }
-
-        const url = `${CONFIG.APPS_SCRIPT_URL}?action=${CONFIG.API_ACTIONS.GET_APPOINTMENTS}&${new URLSearchParams(params)}`;
-        return await this.fetchGet(url);
-    },
-
-    async updateAppointment(appointmentId, updates) {
-        const payload = {
-            appointmentId: appointmentId,
-            ...updates
-        };
-
-        return await this.fetch(CONFIG.API_ACTIONS.UPDATE_APPOINTMENT, payload);
-    },
-
-    async searchAppointments(query, field = 'name') {
-        const url = `${CONFIG.APPS_SCRIPT_URL}?action=${CONFIG.API_ACTIONS.SEARCH_APPOINTMENTS}&query=${encodeURIComponent(query)}&field=${field}`;
-        return await this.fetchGet(url);
+        
+        const params = new URLSearchParams();
+        params.append('action', 'createAppointment');
+        params.append('patientId', data.patientId);
+        params.append('patientName', data.patientName);
+        params.append('phone', data.phone);
+        params.append('caseType', data.caseType);
+        params.append('date', data.date);
+        params.append('timeSlot', data.timeSlot);
+        params.append('notes', data.notes || '');
+        params.append('createdBy', data.createdBy || 'system');
+        
+        const fullUrl = `${url}?${params.toString()}`;
+        
+        console.log('Creating appointment:', data.caseType);
+        
+        try {
+            const response = await fetch(fullUrl, {
+                method: 'GET',
+                redirect: 'follow'
+            });
+            
+            const result = await response.json();
+            console.log('Appointment result:', result);
+            return result;
+            
+        } catch (error) {
+            console.error('Appointment error:', error);
+            return { success: false, error: error.message };
+        }
     },
 
     /**
-     * Blocked Dates APIs
+     * Get appointments
+     */
+    async getAppointments(date, type) {
+        const url = CONFIG.APPS_SCRIPT_URL;
+        
+        if (!url) {
+            return { success: false, data: [] };
+        }
+        
+        const params = new URLSearchParams();
+        params.append('action', 'getAppointments');
+        if (date) params.append('date', date);
+        if (type) params.append('type', type);
+        
+        try {
+            const response = await fetch(`${url}?${params.toString()}`);
+            const result = await response.json();
+            return result;
+        } catch (error) {
+            console.error('Error getting appointments:', error);
+            return { success: false, data: [] };
+        }
+    },
+
+    /**
+     * Search appointments
+     */
+    async searchAppointments(query, field) {
+        const url = CONFIG.APPS_SCRIPT_URL;
+        
+        if (!url) {
+            return { success: false, data: [] };
+        }
+        
+        const params = new URLSearchParams();
+        params.append('action', 'searchAppointments');
+        params.append('query', query);
+        params.append('field', field);
+        
+        try {
+            const response = await fetch(`${url}?${params.toString()}`);
+            const result = await response.json();
+            return result;
+        } catch (error) {
+            console.error('Search error:', error);
+            return { success: false, data: [] };
+        }
+    },
+
+    /**
+     * Get blocked dates
      */
     async getBlockedDates() {
-        const url = `${CONFIG.APPS_SCRIPT_URL}?action=${CONFIG.API_ACTIONS.GET_BLOCKED_DATES}`;
-        return await this.fetchGet(url);
+        const url = CONFIG.APPS_SCRIPT_URL;
+        
+        if (!url) {
+            return { success: false, data: [] };
+        }
+        
+        try {
+            const response = await fetch(`${url}?action=getBlockedDates`);
+            const result = await response.json();
+            return result;
+        } catch (error) {
+            console.error('Error getting blocked dates:', error);
+            return { success: false, data: [] };
+        }
     },
 
+    /**
+     * Block date
+     */
     async blockDate(date, reason, category) {
-        const payload = {
-            date: date,
-            reason: reason,
-            category: category,
-            createdBy: Auth.getCurrentUser()?.username || 'system',
-            active: true
-        };
-
-        return await this.fetch(CONFIG.API_ACTIONS.BLOCK_DATE, payload);
+        const url = CONFIG.APPS_SCRIPT_URL;
+        
+        if (!url) {
+            throw new Error('Apps Script URL not configured');
+        }
+        
+        const params = new URLSearchParams();
+        params.append('action', 'blockDate');
+        params.append('date', date);
+        params.append('reason', reason);
+        params.append('category', category);
+        
+        try {
+            const response = await fetch(`${url}?${params.toString()}`);
+            const result = await response.json();
+            return result;
+        } catch (error) {
+            console.error('Error blocking date:', error);
+            return { success: false, error: error.message };
+        }
     },
 
+    /**
+     * Unblock date
+     */
     async unblockDate(date) {
-        const payload = {
-            date: date
-        };
-
-        return await this.fetch(CONFIG.API_ACTIONS.UNBLOCK_DATE, payload);
-    },
-
-    /**
-     * Appointment Slots APIs
-     */
-    async getSlots(caseType = null) {
-        let url = `${CONFIG.APPS_SCRIPT_URL}?action=${CONFIG.API_ACTIONS.GET_SLOTS}`;
+        const url = CONFIG.APPS_SCRIPT_URL;
         
-        if (caseType) {
-            url += `&caseType=${encodeURIComponent(caseType)}`;
+        if (!url) {
+            throw new Error('Apps Script URL not configured');
         }
-
-        return await this.fetchGet(url);
-    },
-
-    async updateSlots(caseType, slots) {
-        const payload = {
-            caseType: caseType,
-            slots: slots,
-            updatedBy: Auth.getCurrentUser()?.username || 'system'
-        };
-
-        return await this.fetch(CONFIG.API_ACTIONS.UPDATE_SLOTS, payload);
-    },
-
-    /**
-     * User Management APIs
-     */
-    async getUsers() {
-        const url = `${CONFIG.APPS_SCRIPT_URL}?action=${CONFIG.API_ACTIONS.GET_USERS}`;
-        return await this.fetchGet(url);
-    },
-
-    async addUser(userData) {
-        const payload = {
-            username: userData.username,
-            password: userData.password, // Should be hashed
-            role: userData.role,
-            fullName: userData.fullName,
-            email: userData.email,
-            active: true,
-            createdBy: Auth.getCurrentUser()?.username || 'system'
-        };
-
-        return await this.fetch(CONFIG.API_ACTIONS.ADD_USER, payload);
-    },
-
-    async updateUser(username, updates) {
-        const payload = {
-            username: username,
-            ...updates,
-            updatedBy: Auth.getCurrentUser()?.username || 'system'
-        };
-
-        return await this.fetch(CONFIG.API_ACTIONS.UPDATE_USER, payload);
-    },
-
-    async deleteUser(username) {
-        const payload = {
-            username: username,
-            deletedBy: Auth.getCurrentUser()?.username || 'system'
-        };
-
-        return await this.fetch(CONFIG.API_ACTIONS.DELETE_USER, payload);
-    },
-
-    /**
-     * Sheets Registry APIs
-     */
-    async getSheets(role = null) {
-        let url = `${CONFIG.APPS_SCRIPT_URL}?action=${CONFIG.API_ACTIONS.GET_SHEETS}`;
         
-        if (role) {
-            url += `&role=${role}`;
-        }
-
-        return await this.fetchGet(url);
-    },
-
-    async addSheet(sheetData) {
-        const payload = {
-            sheetId: Utils.generateId('SHEET_'),
-            name: sheetData.name,
-            description: sheetData.description,
-            category: sheetData.category,
-            url: sheetData.url,
-            icon: sheetData.icon || '📄',
-            accessRoles: sheetData.accessRoles,
-            active: true,
-            createdBy: Auth.getCurrentUser()?.username || 'system'
-        };
-
-        return await this.fetch(CONFIG.API_ACTIONS.ADD_SHEET, payload);
-    },
-
-    async updateSheet(sheetId, updates) {
-        const payload = {
-            sheetId: sheetId,
-            ...updates,
-            updatedBy: Auth.getCurrentUser()?.username || 'system'
-        };
-
-        return await this.fetch(CONFIG.API_ACTIONS.UPDATE_SHEET, payload);
-    },
-
-    async deleteSheet(sheetId) {
-        const payload = {
-            sheetId: sheetId,
-            active: false,
-            deletedBy: Auth.getCurrentUser()?.username || 'system'
-        };
-
-        return await this.fetch(CONFIG.API_ACTIONS.DELETE_SHEET, payload);
-    },
-
-    /**
-     * System Settings APIs
-     */
-    async getSettings() {
-        const url = `${CONFIG.APPS_SCRIPT_URL}?action=${CONFIG.API_ACTIONS.GET_SETTINGS}`;
-        return await this.fetchGet(url);
-    },
-
-    async updateSettings(settings) {
-        const payload = {
-            settings: settings,
-            updatedBy: Auth.getCurrentUser()?.username || 'system'
-        };
-
-        return await this.fetch(CONFIG.API_ACTIONS.UPDATE_SETTINGS, payload);
-    },
-
-    /**
-     * Statistics APIs
-     */
-    async getStats(type = 'all', date = null) {
-        let url = `${CONFIG.APPS_SCRIPT_URL}?action=${CONFIG.API_ACTIONS.GET_STATS}&type=${type}`;
+        const params = new URLSearchParams();
+        params.append('action', 'unblockDate');
+        params.append('date', date);
         
-        if (date) {
-            url += `&date=${date}`;
+        try {
+            const response = await fetch(`${url}?${params.toString()}`);
+            const result = await response.json();
+            return result;
+        } catch (error) {
+            console.error('Error unblocking date:', error);
+            return { success: false, error: error.message };
         }
-
-        return await this.fetchGet(url);
     },
 
     /**
-     * Helper Functions
+     * Get slots configuration
      */
-    setAppsScriptUrl(url) {
-        CONFIG.APPS_SCRIPT_URL = url;
-        Utils.saveToStorage(CONFIG.STORAGE_KEYS.APPS_SCRIPT_URL, url);
-    },
-
-    getAppsScriptUrl() {
-        return CONFIG.APPS_SCRIPT_URL || Utils.getFromStorage(CONFIG.STORAGE_KEYS.APPS_SCRIPT_URL, '');
+    async getSlots(caseType) {
+        // For now, return from config
+        // Later can fetch from Google Sheets
+        const slotConfig = CONFIG.DEFAULT_SLOTS[caseType];
+        
+        if (slotConfig) {
+            return {
+                success: true,
+                data: { [caseType]: slotConfig },
+                useDefaults: false
+            };
+        }
+        
+        return {
+            success: false,
+            data: {},
+            useDefaults: true
+        };
     },
 
     /**
-     * Auto-link appointment to registration
+     * Get sheets registry
+     */
+    async getSheets(role) {
+        const url = CONFIG.APPS_SCRIPT_URL;
+        
+        if (!url) {
+            return { success: false, data: [] };
+        }
+        
+        const params = new URLSearchParams();
+        params.append('action', 'getSheets');
+        if (role) params.append('role', role);
+        
+        try {
+            const response = await fetch(`${url}?${params.toString()}`);
+            const result = await response.json();
+            return result;
+        } catch (error) {
+            console.error('Error getting sheets:', error);
+            return { success: false, data: [] };
+        }
+    },
+
+    /**
+     * Add sheet to registry
+     */
+    async addSheet(data) {
+        const url = CONFIG.APPS_SCRIPT_URL;
+        
+        if (!url) {
+            throw new Error('Apps Script URL not configured');
+        }
+        
+        const params = new URLSearchParams();
+        params.append('action', 'addSheet');
+        params.append('name', data.name);
+        params.append('description', data.description);
+        params.append('category', data.category);
+        params.append('url', data.url);
+        params.append('icon', data.icon);
+        params.append('accessRoles', data.accessRoles.join(','));
+        
+        try {
+            const response = await fetch(`${url}?${params.toString()}`);
+            const result = await response.json();
+            return result;
+        } catch (error) {
+            console.error('Error adding sheet:', error);
+            return { success: false, error: error.message };
+        }
+    },
+
+    /**
+     * Link appointment to registration (auto-complete)
      */
     async linkAppointmentToRegistration(patientId, date) {
+        console.log('Linking appointment for:', patientId, 'on', date);
+        
         try {
-            // Get today's appointments for this patient
             const appointments = await this.getAppointments(date);
             
-            if (!appointments || !appointments.success) {
-                return { linked: false };
+            if (!appointments.success || !appointments.data) {
+                return;
             }
-
-            // Find matching appointment
-            const matching = appointments.data.filter(appt => 
-                appt.patientId === patientId && 
-                appt.status === CONFIG.APPOINTMENT_STATUS.PENDING
-            );
-
-            if (matching.length > 0) {
-                // Update appointment status to completed
-                for (const appt of matching) {
-                    await this.updateAppointment(appt.id, {
-                        status: CONFIG.APPOINTMENT_STATUS.COMPLETED,
-                        completedAt: new Date().toISOString()
-                    });
-                }
-
-                return {
-                    linked: true,
-                    count: matching.length,
-                    appointments: matching
-                };
-            }
-
-            return { linked: false };
             
+            const todayAppt = appointments.data.find(appt => 
+                appt.patientId === patientId && 
+                appt.status === 'Pending'
+            );
+            
+            if (todayAppt) {
+                console.log('Found matching appointment:', todayAppt.id);
+                // Update appointment status to Selesai
+                await this.updateAppointment(todayAppt.id, 'Selesai');
+            }
         } catch (error) {
             console.error('Error linking appointment:', error);
-            return { linked: false, error: error.message };
         }
     },
 
     /**
-     * Batch operations
+     * Update appointment
      */
-    async batchUpdate(updates) {
-        const payload = {
-            updates: updates
-        };
-
-        return await this.fetch('batchUpdate', payload);
+    async updateAppointment(appointmentId, status) {
+        const url = CONFIG.APPS_SCRIPT_URL;
+        
+        if (!url) {
+            return { success: false };
+        }
+        
+        const params = new URLSearchParams();
+        params.append('action', 'updateAppointment');
+        params.append('appointmentId', appointmentId);
+        params.append('status', status);
+        
+        try {
+            const response = await fetch(`${url}?${params.toString()}`);
+            const result = await response.json();
+            return result;
+        } catch (error) {
+            console.error('Error updating appointment:', error);
+            return { success: false, error: error.message };
+        }
     },
 
     /**
-     * Check system health
+     * Set Apps Script URL (for admin settings)
      */
-    async checkConnection() {
-        try {
-            const url = `${CONFIG.APPS_SCRIPT_URL}?action=ping`;
-            const response = await this.fetchGet(url);
-            return response.success === true;
-        } catch (error) {
-            console.error('Connection check failed:', error);
-            return false;
+    setAppsScriptUrl(url) {
+        // This will be called from admin settings
+        // The URL is stored in config.js CONFIG.APPS_SCRIPT_URL
+        console.log('Apps Script URL set:', url);
+        
+        // Save to localStorage for persistence
+        localStorage.setItem('appsScriptUrl', url);
+        
+        // Update config
+        if (typeof CONFIG !== 'undefined') {
+            CONFIG.APPS_SCRIPT_URL = url;
         }
     }
 };
