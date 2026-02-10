@@ -138,33 +138,65 @@ const CONFIG = {
     
     // Default Appointment Slots (configurable by superadmin)
     DEFAULT_SLOTS: {
-        'DM': [
-            { time: '08:00', slots: 10 },
-            { time: '09:00', slots: 10 },
-            { time: '10:00', slots: 10 }
-        ],
-        'HPT': [
-            { time: '08:00', slots: 12 },
-            { time: '09:00', slots: 12 },
-            { time: '10:00', slots: 12 }
-        ],
-        'BA': [
-            { time: '08:30', slots: 8 },
-            { time: '10:00', slots: 8 }
-        ],
-        'Fundus': [
-            { time: '08:30', slots: 5 },
-            { time: '10:00', slots: 5 },
-            { time: '14:00', slots: 5 }
-        ],
-        'DE': [
-            { time: '14:00', slots: 8 },
-            { time: '15:00', slots: 8 }
-        ],
-        'Dressing': [
-            { time: '09:00', slots: 10 },
-            { time: '14:00', slots: 10 }
-        ]
+        'Diabetic Educator (DE)': {
+            days: [0, 3], // Sunday, Wednesday
+            slots: [
+                { time: '08:30', max: 5 },
+                { time: '09:00', max: 5 },
+                { time: '09:30', max: 5 },
+                { time: '10:00', max: 5 },
+                { time: '10:30', max: 5 },
+                { time: '11:00', max: 5 }
+            ]
+        },
+        'Klinik Berhenti Merokok (KBM)': {
+            days: [4], // Thursday
+            slots: [
+                { time: '08:00', max: 5 },
+                { time: '08:30', max: 5 },
+                { time: '09:00', max: 5 },
+                { time: '09:30', max: 5 },
+                { time: '10:00', max: 5 }
+            ]
+        },
+        'Dressing': {
+            days: [0, 1, 2], // Sunday, Monday, Tuesday
+            slots: [
+                { time: '14:00', max: 2 },
+                { time: '14:30', max: 2 },
+                { time: '15:00', max: 2 },
+                { time: '15:30', max: 2 }
+            ]
+        },
+        'Fundus': {
+            days: [3], // Wednesday
+            slots: [
+                { time: 'any', max: 15 } // Time independent - 15 total slots
+            ]
+        },
+        'Kencing Manis (DM)': {
+            days: [0, 1, 2, 3, 4], // Sunday - Thursday
+            slots: [
+                { time: '08:00', max: 10 },
+                { time: '09:00', max: 10 },
+                { time: '10:00', max: 10 }
+            ]
+        },
+        'Hipertensi (HPT)': {
+            days: [0, 1, 2, 3, 4], // Sunday - Thursday
+            slots: [
+                { time: '08:00', max: 12 },
+                { time: '09:00', max: 12 },
+                { time: '10:00', max: 12 }
+            ]
+        },
+        'Asthma (BA)': {
+            days: [0, 1, 2, 3, 4], // Sunday - Thursday
+            slots: [
+                { time: '08:30', max: 8 },
+                { time: '10:00', max: 8 }
+            ]
+        }
     },
     
     // UI Configuration
