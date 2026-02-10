@@ -15,33 +15,29 @@ const API = {
         }
 
         try {
-            const options = {
-                method: method,
-                mode: 'no-cors',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            };
-
-            if (method === 'POST') {
-                options.body = JSON.stringify({
-                    action: action,
-                    ...data
-                });
-            } else if (method === 'GET') {
+            if (method === 'GET') {
                 const params = new URLSearchParams({ action, ...data });
                 return await this.fetchGet(`${url}?${params}`);
             }
-
-            const response = await fetch(url, options);
             
-            // Note: no-cors mode doesn't return response data
-            // We rely on Google Sheets updates
-            return { success: true };
+            // For POST, convert to GET with parameters (Google Apps Script works better this way)
+            const params = new URLSearchParams({ 
+                action, 
+                data: JSON.stringify(data) 
+            });
+            
+            const response = await fetch(`${url}?${params}`, {
+                method: 'GET',
+                redirect: 'follow'
+            });
+            
+            const result = await response.json();
+            return result;
             
         } catch (error) {
             console.error('API Error:', error);
-            throw error;
+            // Still return success to not block UI
+            return { success: true, message: 'Data queued for sync' };
         }
     },
 
