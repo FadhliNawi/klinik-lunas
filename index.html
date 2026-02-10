@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Klinik Kesihatan Lunas - Sistem Pengurusan</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- CSS Files -->
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/navigation.css">
+    <link rel="stylesheet" href="css/forms.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <!-- Login Page -->
+    <div id="loginPage" class="login-page">
+        <div class="login-box">
+            <div class="login-logo">🏥</div>
+            <h1>Klinik Kesihatan Lunas</h1>
+            <p>Sistem Pengurusan Pesakit</p>
+            
+            <div class="error-message" id="loginError">
+                ❌ Username atau password salah!
+            </div>
+
+            <form id="loginForm">
+                <div class="form-group">
+                    <label>Username</label>
+                    <input type="text" id="username" required placeholder="Masukkan username" autocomplete="username">
+                </div>
+
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="password" required placeholder="Masukkan password" autocomplete="current-password">
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-login">
+                    🔐 Log Masuk
+                </button>
+            </form>
+
+            <div class="login-footer">
+                <p>Default credentials untuk testing:</p>
+                <small>superadmin / super2026<br>admin_mch / mch2026<br>admin_opd / opd2026</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App (Hidden until login) -->
+    <div id="mainApp" class="hidden">
+        <!-- Navigation Bar -->
+        <nav class="navbar">
+            <div class="navbar-container">
+                <div class="navbar-brand">
+                    🏥 Klinik Lunas
+                </div>
+
+                <ul class="navbar-menu" id="navbarMenu">
+                    <!-- Populated by navigation.js based on user role -->
+                </ul>
+
+                <div class="nav-user" id="navUser">
+                    <div class="user-avatar" id="userAvatar">A</div>
+                    <div class="user-info">
+                        <div class="user-name" id="userName">Admin</div>
+                        <div class="user-role" id="userRole">SuperAdmin</div>
+                    </div>
+                    <span class="dropdown-arrow">▾</span>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Header -->
+        <div class="header">
+            <div class="header-content">
+                <h1>🏥 Klinik Kesihatan Lunas</h1>
+                <p>Dashboard Analitik & Pengurusan Pesakit</p>
+                <div class="date-time">
+                    <span id="currentDate"></span>
+                    <span>•</span>
+                    <span id="currentTime"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Area -->
+        <div class="container">
+            <div id="mainContent">
+                <!-- Content will be loaded here by navigation.js -->
+                <div class="loading-spinner">Loading...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="spinner"></div>
+        <p>Loading...</p>
+    </div>
+
+    <!-- JavaScript Files (Load in order) -->
+    <script src="js/config.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/navigation.js"></script>
+    <script src="js/dashboard.js"></script>
+    <script src="js/registration.js"></script>
+    <script src="js/appointments.js"></script>
+    <script src="js/admin.js"></script>
+
+    <!-- Initialize App -->
+    <script>
+        // App initialization
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🏥 Klinik Lunas System Loading...');
+            
+            // Check for existing session
+            const hasSession = Auth.init();
+            
+            if (hasSession) {
+                // User already logged in
+                showMainApp();
+            } else {
+                // Show login page
+                document.getElementById('loginPage').classList.remove('hidden');
+                document.getElementById('mainApp').classList.add('hidden');
+            }
+
+            // Setup login form
+            setupLoginForm();
+        });
+
+        function setupLoginForm() {
+            const form = document.getElementById('loginForm');
+            const errorMsg = document.getElementById('loginError');
+
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const username = document.getElementById('username').value.trim();
+                const password = document.getElementById('password').value;
+
+                // Show loading
+                const btn = form.querySelector('button[type="submit"]');
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '⏳ Logging in...';
+                btn.disabled = true;
+
+                // Attempt login
+                const result = await Auth.login(username, password);
+
+                if (result.success) {
+                    // Successful login
+                    errorMsg.style.display = 'none';
+                    showMainApp();
+                } else {
+                    // Failed login
+                    errorMsg.textContent = '❌ ' + result.error;
+                    errorMsg.style.display = 'block';
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                    
+                    // Hide error after 3 seconds
+                    setTimeout(() => {
+                        errorMsg.style.display = 'none';
+                    }, 3000);
+                }
+            });
+        }
+
+        function showMainApp() {
+            // Hide login page
+            document.getElementById('loginPage').classList.add('hidden');
+            
+            // Show main app
+            document.getElementById('mainApp').classList.remove('hidden');
+            
+            // Initialize navigation
+            Navigation.init();
+            
+            // Update clock
+            updateDateTime();
+            setInterval(updateDateTime, 1000);
+
+            console.log('✅ System Ready');
+        }
+
+        function updateDateTime() {
+            const now = new Date();
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            
+            const dateEl = document.getElementById('currentDate');
+            const timeEl = document.getElementById('currentTime');
+            
+            if (dateEl) {
+                dateEl.textContent = now.toLocaleDateString('ms-MY', options);
+            }
+            
+            if (timeEl) {
+                timeEl.textContent = now.toLocaleTimeString('ms-MY');
+            }
+        }
+
+        // Global error handler
+        window.addEventListener('error', function(e) {
+            console.error('Global error:', e.error);
+        });
+
+        // Prevent forms from refreshing page
+        document.addEventListener('submit', function(e) {
+            if (e.target.tagName === 'FORM') {
+                // Most forms handle their own submission
+                // This is just a safety net
+            }
+        });
+    </script>
+</body>
+</html>
