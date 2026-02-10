@@ -21,8 +21,15 @@ const Registration = {
 
         content.innerHTML = `
             <div class="page-header">
-                <h1>🏥 Pendaftaran Pesakit Luar (OPD)</h1>
-                <p>Untuk staff kaunter - Modal kekal terbuka untuk pendaftaran bertubi-tubi</p>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <h1>Pendaftaran Pesakit Luar (OPD)</h1>
+                        <p>Untuk staff kaunter - Modal kekal terbuka untuk pendaftaran bertubi-tubi</p>
+                    </div>
+                    <button class="btn btn-secondary" onclick="Navigation.backToDashboard()">
+                        ← Kembali ke Dashboard
+                    </button>
+                </div>
             </div>
 
             <div class="registration-form-container">
@@ -122,8 +129,15 @@ const Registration = {
 
         content.innerHTML = `
             <div class="page-header">
-                <h1>👶 Pendaftaran Ibu & Anak (MCH)</h1>
-                <p>Pendaftaran untuk perkhidmatan kesihatan ibu dan anak</p>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <h1>Pendaftaran Ibu & Anak (MCH)</h1>
+                        <p>Pendaftaran untuk perkhidmatan kesihatan ibu dan anak</p>
+                    </div>
+                    <button class="btn btn-secondary" onclick="Navigation.backToDashboard()">
+                        ← Kembali ke Dashboard
+                    </button>
+                </div>
             </div>
 
             <div class="info-box mch-info">
