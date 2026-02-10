@@ -15,8 +15,15 @@ const Appointments = {
 
         content.innerHTML = `
             <div class="page-header">
-                <h1>📅 Buat Temujanji Baru</h1>
-                <p>Tempah slot untuk pesakit</p>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <h1>Buat Temujanji Baru</h1>
+                        <p>Tempah slot untuk pesakit</p>
+                    </div>
+                    <button class="btn btn-secondary" onclick="Navigation.backToDashboard()">
+                        ← Kembali ke Dashboard
+                    </button>
+                </div>
             </div>
 
             <div class="appointment-form-container">
@@ -150,33 +157,56 @@ const Appointments = {
      */
     async loadSlots() {
         const caseType = document.getElementById('apptCaseType')?.value;
-        const date = document.getElementById('apptDate')?.value;
+        const dateInput = document.getElementById('apptDate');
+        const date = dateInput?.value;
         const timeSelect = document.getElementById('apptTime');
         const slotsHelper = document.getElementById('slotsAvailable');
 
         if (!caseType || !date || !timeSelect) return;
 
         try {
-            // Get slots configuration
-            const slots = await API.getSlots(caseType);
+            // Get day of week for selected date
+            const selectedDate = new Date(date);
+            const dayOfWeek = selectedDate.getDay(); // 0=Sun, 1=Mon, etc.
+
+            // Get slots configuration from Google Sheets
+            const response = await API.getSlots(caseType);
+            
+            let slotConfig;
+            
+            // Use Google Sheets data or fall back to defaults
+            if (response.useDefaults || !response.data || !response.data[caseType]) {
+                slotConfig = CONFIG.DEFAULT_SLOTS[caseType];
+            } else {
+                slotConfig = response.data[caseType];
+            }
+
+            if (!slotConfig) {
+                timeSelect.innerHTML = '<option value="">Tiada slot dikonfigurasi untuk jenis kes ini</option>';
+                slotsHelper.textContent = '⚠️ Sila hubungi admin untuk konfigurasi slot';
+                slotsHelper.style.color = '#EF4444';
+                return;
+            }
+
+            // Check if case type is available on selected day
+            if (slotConfig.days && !slotConfig.days.includes(dayOfWeek)) {
+                const dayNames = ['Ahad', 'Isnin', 'Selasa', 'Rabu', 'Khamis', 'Jumaat', 'Sabtu'];
+                const availableDays = slotConfig.days.map(d => dayNames[d]).join(', ');
+                
+                timeSelect.innerHTML = '<option value="">Jenis kes ini tidak tersedia pada hari ini</option>';
+                slotsHelper.innerHTML = `⚠️ <strong>${caseType}</strong> hanya tersedia pada: <strong>${availableDays}</strong>`;
+                slotsHelper.style.color = '#F59E0B';
+                return;
+            }
             
             // Get existing appointments for this date
-            const appointments = await API.getAppointments(Utils.formatDate(new Date(date)));
-
-            // Default slots if not configured
-            const availableSlots = slots?.data || CONFIG.DEFAULT_SLOTS[caseType] || [
-                { time: '08:00', slots: 10 },
-                { time: '09:00', slots: 10 },
-                { time: '10:00', slots: 10 },
-                { time: '14:00', slots: 10 },
-                { time: '15:00', slots: 10 }
-            ];
+            const appointments = await API.getAppointments(Utils.formatDate(selectedDate));
 
             // Count booked slots
             const booked = {};
             if (appointments?.data) {
                 appointments.data.forEach(appt => {
-                    if (appt.caseType === caseType) {
+                    if (appt.caseType === caseType && appt.timeSlot !== 'any') {
                         booked[appt.timeSlot] = (booked[appt.timeSlot] || 0) + 1;
                     }
                 });
@@ -185,32 +215,51 @@ const Appointments = {
             // Build options
             let html = '<option value="">Pilih masa...</option>';
             let totalAvailable = 0;
+            let totalBooked = 0;
 
-            availableSlots.forEach(slot => {
-                const bookedCount = booked[slot.time] || 0;
-                const available = slot.slots - bookedCount;
-                
-                if (available > 0) {
-                    html += `<option value="${slot.time}">${slot.time} (${available} slot tersedia)</option>`;
-                    totalAvailable += available;
+            slotConfig.slots.forEach(slot => {
+                if (slot.time === 'any') {
+                    // Time-independent slot (e.g., Fundus)
+                    const bookedCount = appointments?.data?.filter(a => a.caseType === caseType).length || 0;
+                    const available = slot.max - bookedCount;
+                    
+                    if (available > 0) {
+                        html += `<option value="any">Bila-bila masa (${available}/${slot.max} slot tersedia)</option>`;
+                        totalAvailable += available;
+                    } else {
+                        html += `<option value="any" disabled>Bila-bila masa (PENUH - ${slot.max}/${slot.max})</option>`;
+                    }
+                    totalBooked += bookedCount;
                 } else {
-                    html += `<option value="${slot.time}" disabled>${slot.time} (Penuh)</option>`;
+                    // Time-specific slot
+                    const bookedCount = booked[slot.time] || 0;
+                    const available = slot.max - bookedCount;
+                    
+                    if (available > 0) {
+                        html += `<option value="${slot.time}">${slot.time} (${available}/${slot.max} tersedia)</option>`;
+                        totalAvailable += available;
+                    } else {
+                        html += `<option value="${slot.time}" disabled>${slot.time} (PENUH - ${slot.max}/${slot.max})</option>`;
+                    }
+                    totalBooked += bookedCount;
                 }
             });
 
             timeSelect.innerHTML = html;
             
             if (totalAvailable > 0) {
-                slotsHelper.textContent = `✅ ${totalAvailable} slot tersedia untuk ${caseType}`;
+                slotsHelper.innerHTML = `✅ <strong>${totalAvailable} slot</strong> tersedia untuk <strong>${caseType}</strong> pada tarikh ini`;
                 slotsHelper.style.color = '#10B981';
             } else {
-                slotsHelper.textContent = `⚠️ Tiada slot tersedia untuk ${caseType} pada tarikh ini`;
-                slotsHelper.style.color = '#F59E0B';
+                slotsHelper.innerHTML = `❌ <strong>Semua slot penuh</strong> untuk <strong>${caseType}</strong> pada tarikh ini (${totalBooked} tempahan)`;
+                slotsHelper.style.color = '#EF4444';
             }
 
         } catch (error) {
             console.error('Error loading slots:', error);
             timeSelect.innerHTML = '<option value="">Ralat memuat slot</option>';
+            slotsHelper.textContent = '❌ Ralat memuat slot. Cuba refresh page.';
+            slotsHelper.style.color = '#EF4444';
         }
     },
 
