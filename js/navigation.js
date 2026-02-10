@@ -259,6 +259,13 @@ const Navigation = {
     },
 
     /**
+     * Back to dashboard button
+     */
+    backToDashboard() {
+        this.loadPage('dashboard');
+    },
+
+    /**
      * Setup event listeners
      */
     setupEventListeners() {
